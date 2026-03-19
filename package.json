@@ -8,6 +8,7 @@
     "build": "cd backend && npm run build && cd ../frontend && npm run build",
     "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\"",
     "start": "cd backend && npm start",
+    "start:prod": "cd backend && npm run build && npm start",
     "start-local": "npm run build && npm start",
     "clean": "cd backend && npm run clean && cd ../frontend && rm -rf build"
   },
