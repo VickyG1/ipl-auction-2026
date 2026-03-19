@@ -16,7 +16,9 @@ export class SocketManager {
   constructor(server: HTTPServer) {
     this.io = new SocketIOServer(server, {
       cors: {
-        origin: process.env.NODE_ENV === 'production' ? false : 'http://localhost:3000',
+        origin: process.env.NODE_ENV === 'production'
+          ? false
+          : ['http://localhost:3000', 'http://10.171.116.70:3000'],
         methods: ['GET', 'POST']
       }
     });
