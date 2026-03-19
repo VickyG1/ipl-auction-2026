@@ -108,7 +108,9 @@ const AuctionSetup: React.FC = () => {
         // Navigate to the auction room
         navigate(`/auction/${joinAuctionId}?user=${encodeURIComponent(userName.trim())}`);
       } catch (err) {
-        setError('Failed to join auction. Please try again.');
+        console.error('Join auction error:', err);
+        const errorMsg = err instanceof Error ? err.message : 'Failed to join auction. Please try again.';
+        setError(`Failed to join auction: ${errorMsg}`);
       } finally {
         setLoading(false);
       }
