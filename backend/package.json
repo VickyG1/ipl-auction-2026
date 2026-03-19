@@ -1,0 +1,41 @@
+{
+  "name": "ipl-auction-backend",
+  "version": "1.0.0",
+  "description": "Backend server for IPL 2026 auction tool",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4",
+    "sqlite3": "^5.1.6",
+    "redis": "^4.6.11",
+    "joi": "^17.11.0",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4",
+    "uuid": "^9.0.1",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.2",
+    "cheerio": "^1.0.0-rc.12",
+    "puppeteer": "^21.5.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.10",
+    "@types/express": "^4.17.20",
+    "@types/cors": "^2.8.15",
+    "@types/compression": "^1.7.4",
+    "@types/uuid": "^9.0.6",
+    "typescript": "^5.2.2",
+    "nodemon": "^3.0.1",
+    "ts-node": "^10.9.1",
+    "rimraf": "^5.0.5"
+  },
+  "keywords": ["ipl", "auction", "cricket", "realtime"],
+  "author": "IPL Auction Group",
+  "license": "MIT"
+}

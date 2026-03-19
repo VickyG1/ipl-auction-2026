@@ -1,0 +1,641 @@
+[
+  {
+    "name": "Virat Kohli",
+    "team": "RCB",
+    "role": "BAT",
+    "basePrice": 1500,
+    "category": "MARQUEE",
+    "stats": {
+      "matches": 237,
+      "runs": 7263,
+      "average": 37.25,
+      "strikeRate": 131.02,
+      "fantasyPoints": 1450
+    }
+  },
+  {
+    "name": "MS Dhoni",
+    "team": "CSK",
+    "role": "WK",
+    "basePrice": 1200,
+    "category": "MARQUEE",
+    "stats": {
+      "matches": 250,
+      "runs": 5082,
+      "average": 39.55,
+      "strikeRate": 135.92,
+      "fantasyPoints": 1380
+    }
+  },
+  {
+    "name": "Rohit Sharma",
+    "team": "MI",
+    "role": "BAT",
+    "basePrice": 1400,
+    "category": "MARQUEE",
+    "stats": {
+      "matches": 243,
+      "runs": 6628,
+      "average": 31.17,
+      "strikeRate": 130.61,
+      "fantasyPoints": 1420
+    }
+  },
+  {
+    "name": "Jasprit Bumrah",
+    "team": "MI",
+    "role": "BOWL",
+    "basePrice": 1000,
+    "category": "MARQUEE",
+    "stats": {
+      "matches": 133,
+      "wickets": 159,
+      "average": 24.43,
+      "strikeRate": 19.17,
+      "fantasyPoints": 1250
+    }
+  },
+  {
+    "name": "Hardik Pandya",
+    "team": "MI",
+    "role": "AR",
+    "basePrice": 1600,
+    "category": "MARQUEE",
+    "stats": {
+      "matches": 104,
+      "runs": 2556,
+      "wickets": 42,
+      "average": 28.18,
+      "strikeRate": 143.75,
+      "fantasyPoints": 1300
+    }
+  },
+  {
+    "name": "Rashid Khan",
+    "team": "GT",
+    "role": "BOWL",
+    "basePrice": 1500,
+    "category": "MARQUEE",
+    "stats": {
+      "matches": 76,
+      "wickets": 93,
+      "average": 20.77,
+      "strikeRate": 17.89,
+      "fantasyPoints": 1180
+    }
+  },
+  {
+    "name": "KL Rahul",
+    "team": "LSG",
+    "role": "WK",
+    "basePrice": 1100,
+    "category": "MARQUEE",
+    "stats": {
+      "matches": 132,
+      "runs": 4683,
+      "average": 47.83,
+      "strikeRate": 134.62,
+      "fantasyPoints": 1220
+    }
+  },
+  {
+    "name": "Jos Buttler",
+    "team": "RR",
+    "role": "WK",
+    "basePrice": 1000,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 65,
+      "runs": 2582,
+      "average": 41.32,
+      "strikeRate": 149.05,
+      "fantasyPoints": 1150
+    }
+  },
+  {
+    "name": "David Warner",
+    "team": "DC",
+    "role": "BAT",
+    "basePrice": 900,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 184,
+      "runs": 5881,
+      "average": 41.59,
+      "strikeRate": 139.96,
+      "fantasyPoints": 1100
+    }
+  },
+  {
+    "name": "Pat Cummins",
+    "team": "SRH",
+    "role": "BOWL",
+    "basePrice": 800,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 45,
+      "wickets": 51,
+      "average": 31.18,
+      "strikeRate": 20.63,
+      "fantasyPoints": 950
+    }
+  },
+  {
+    "name": "Sunil Narine",
+    "team": "KKR",
+    "role": "AR",
+    "basePrice": 850,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 162,
+      "runs": 1025,
+      "wickets": 180,
+      "average": 26.52,
+      "strikeRate": 19.28,
+      "fantasyPoints": 1080
+    }
+  },
+  {
+    "name": "Andre Russell",
+    "team": "KKR",
+    "role": "AR",
+    "basePrice": 1200,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 140,
+      "runs": 2657,
+      "wickets": 73,
+      "average": 25.96,
+      "strikeRate": 184.22,
+      "fantasyPoints": 1180
+    }
+  },
+  {
+    "name": "Shikhar Dhawan",
+    "team": "PBKS",
+    "role": "BAT",
+    "basePrice": 700,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 206,
+      "runs": 6769,
+      "average": 35.62,
+      "strikeRate": 126.64,
+      "fantasyPoints": 980
+    }
+  },
+  {
+    "name": "Yuzvendra Chahal",
+    "team": "RR",
+    "role": "BOWL",
+    "basePrice": 650,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 260,
+      "wickets": 205,
+      "average": 29.07,
+      "strikeRate": 21.79,
+      "fantasyPoints": 1050
+    }
+  },
+  {
+    "name": "Mohammed Shami",
+    "team": "GT",
+    "role": "BOWL",
+    "basePrice": 620,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 106,
+      "wickets": 127,
+      "average": 27.14,
+      "strikeRate": 20.31,
+      "fantasyPoints": 890
+    }
+  },
+  {
+    "name": "Rishabh Pant",
+    "team": "DC",
+    "role": "WK",
+    "basePrice": 1400,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 111,
+      "runs": 3284,
+      "average": 34.86,
+      "strikeRate": 126.48,
+      "fantasyPoints": 1120
+    }
+  },
+  {
+    "name": "Ravindra Jadeja",
+    "team": "CSK",
+    "role": "AR",
+    "basePrice": 1200,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 240,
+      "runs": 2756,
+      "wickets": 157,
+      "average": 33.26,
+      "strikeRate": 127.3,
+      "fantasyPoints": 1250
+    }
+  },
+  {
+    "name": "Faf du Plessis",
+    "team": "RCB",
+    "role": "BAT",
+    "basePrice": 700,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 100,
+      "runs": 3079,
+      "average": 34.21,
+      "strikeRate": 131.08,
+      "fantasyPoints": 890
+    }
+  },
+  {
+    "name": "Ishan Kishan",
+    "team": "MI",
+    "role": "WK",
+    "basePrice": 1100,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 105,
+      "runs": 2644,
+      "average": 30.16,
+      "strikeRate": 135.04,
+      "fantasyPoints": 850
+    }
+  },
+  {
+    "name": "Prithvi Shaw",
+    "team": "DC",
+    "role": "BAT",
+    "basePrice": 500,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 79,
+      "runs": 1892,
+      "average": 24.83,
+      "strikeRate": 140.61,
+      "fantasyPoints": 680
+    }
+  },
+  {
+    "name": "Dinesh Karthik",
+    "team": "RCB",
+    "role": "WK",
+    "basePrice": 400,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 257,
+      "runs": 4842,
+      "average": 26.32,
+      "strikeRate": 129.92,
+      "fantasyPoints": 720
+    }
+  },
+  {
+    "name": "Kagiso Rabada",
+    "team": "PBKS",
+    "role": "BOWL",
+    "basePrice": 900,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 64,
+      "wickets": 91,
+      "average": 20.37,
+      "strikeRate": 16.31,
+      "fantasyPoints": 850
+    }
+  },
+  {
+    "name": "Trent Boult",
+    "team": "RR",
+    "role": "BOWL",
+    "basePrice": 800,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 104,
+      "wickets": 121,
+      "average": 28.13,
+      "strikeRate": 20.37,
+      "fantasyPoints": 920
+    }
+  },
+  {
+    "name": "Mohammed Siraj",
+    "team": "RCB",
+    "role": "BOWL",
+    "basePrice": 700,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 93,
+      "wickets": 93,
+      "average": 29.84,
+      "strikeRate": 22.15,
+      "fantasyPoints": 780
+    }
+  },
+  {
+    "name": "Lockie Ferguson",
+    "team": "GT",
+    "role": "BOWL",
+    "basePrice": 600,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 44,
+      "wickets": 54,
+      "average": 26.46,
+      "strikeRate": 18.89,
+      "fantasyPoints": 650
+    }
+  },
+  {
+    "name": "Axar Patel",
+    "team": "DC",
+    "role": "AR",
+    "basePrice": 900,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 113,
+      "runs": 1653,
+      "wickets": 114,
+      "average": 25.56,
+      "strikeRate": 117.89,
+      "fantasyPoints": 890
+    }
+  },
+  {
+    "name": "Washington Sundar",
+    "team": "SRH",
+    "role": "AR",
+    "basePrice": 500,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 91,
+      "runs": 723,
+      "wickets": 85,
+      "average": 27.71,
+      "strikeRate": 126.36,
+      "fantasyPoints": 650
+    }
+  },
+  {
+    "name": "Krunal Pandya",
+    "team": "LSG",
+    "role": "AR",
+    "basePrice": 850,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 106,
+      "runs": 1716,
+      "wickets": 51,
+      "average": 22.83,
+      "strikeRate": 143.81,
+      "fantasyPoints": 780
+    }
+  },
+  {
+    "name": "Deepak Hooda",
+    "team": "LSG",
+    "role": "AR",
+    "basePrice": 400,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 77,
+      "runs": 1078,
+      "wickets": 7,
+      "average": 19.24,
+      "strikeRate": 135.86,
+      "fantasyPoints": 480
+    }
+  },
+  {
+    "name": "Marcus Stoinis",
+    "team": "LSG",
+    "role": "AR",
+    "basePrice": 600,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 61,
+      "runs": 1484,
+      "wickets": 28,
+      "average": 29.68,
+      "strikeRate": 147.77,
+      "fantasyPoints": 720
+    }
+  },
+  {
+    "name": "Sanju Samson",
+    "team": "RR",
+    "role": "WK",
+    "basePrice": 1000,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 152,
+      "runs": 3889,
+      "average": 28.4,
+      "strikeRate": 136.1,
+      "fantasyPoints": 890
+    }
+  },
+  {
+    "name": "Quinton de Kock",
+    "team": "LSG",
+    "role": "WK",
+    "basePrice": 600,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 77,
+      "runs": 2256,
+      "average": 31.5,
+      "strikeRate": 130.79,
+      "fantasyPoints": 720
+    }
+  },
+  {
+    "name": "Arshdeep Singh",
+    "team": "PBKS",
+    "role": "BOWL",
+    "basePrice": 400,
+    "category": "UNCAPPED",
+    "stats": {
+      "matches": 65,
+      "wickets": 76,
+      "average": 26.84,
+      "strikeRate": 18.92,
+      "fantasyPoints": 650
+    }
+  },
+  {
+    "name": "Umesh Yadav",
+    "team": "KKR",
+    "role": "BOWL",
+    "basePrice": 200,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 132,
+      "wickets": 119,
+      "average": 30.47,
+      "strikeRate": 22.98,
+      "fantasyPoints": 580
+    }
+  },
+  {
+    "name": "Tim Southee",
+    "team": "KKR",
+    "role": "BOWL",
+    "basePrice": 400,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 18,
+      "wickets": 23,
+      "average": 30.87,
+      "strikeRate": 20.26,
+      "fantasyPoints": 420
+    }
+  },
+  {
+    "name": "Bhuvneshwar Kumar",
+    "team": "SRH",
+    "role": "BOWL",
+    "basePrice": 400,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 155,
+      "wickets": 181,
+      "average": 24.16,
+      "strikeRate": 19.21,
+      "fantasyPoints": 810
+    }
+  },
+  {
+    "name": "T Natarajan",
+    "team": "SRH",
+    "role": "BOWL",
+    "basePrice": 400,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 32,
+      "wickets": 37,
+      "average": 32.24,
+      "strikeRate": 23.19,
+      "fantasyPoints": 420
+    }
+  },
+  {
+    "name": "Avesh Khan",
+    "team": "LSG",
+    "role": "BOWL",
+    "basePrice": 500,
+    "category": "UNCAPPED",
+    "stats": {
+      "matches": 57,
+      "wickets": 65,
+      "average": 30.32,
+      "strikeRate": 21.43,
+      "fantasyPoints": 580
+    }
+  },
+  {
+    "name": "Ravi Bishnoi",
+    "team": "PBKS",
+    "role": "BOWL",
+    "basePrice": 400,
+    "category": "UNCAPPED",
+    "stats": {
+      "matches": 40,
+      "wickets": 42,
+      "average": 30.17,
+      "strikeRate": 21.86,
+      "fantasyPoints": 480
+    }
+  },
+  {
+    "name": "Kuldeep Yadav",
+    "team": "DC",
+    "role": "BOWL",
+    "basePrice": 200,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 76,
+      "wickets": 65,
+      "average": 29.8,
+      "strikeRate": 24.37,
+      "fantasyPoints": 520
+    }
+  },
+  {
+    "name": "Shimron Hetmyer",
+    "team": "RR",
+    "role": "BAT",
+    "basePrice": 850,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 52,
+      "runs": 1321,
+      "average": 27.52,
+      "strikeRate": 140.85,
+      "fantasyPoints": 680
+    }
+  },
+  {
+    "name": "Devdutt Padikkal",
+    "team": "RR",
+    "role": "BAT",
+    "basePrice": 750,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 50,
+      "runs": 1552,
+      "average": 34.49,
+      "strikeRate": 124.74,
+      "fantasyPoints": 620
+    }
+  },
+  {
+    "name": "Mayank Agarwal",
+    "team": "SRH",
+    "role": "BAT",
+    "basePrice": 100,
+    "category": "CAPPED",
+    "stats": {
+      "matches": 119,
+      "runs": 3385,
+      "average": 30.32,
+      "strikeRate": 129.37,
+      "fantasyPoints": 680
+    }
+  },
+  {
+    "name": "Aiden Markram",
+    "team": "SRH",
+    "role": "BAT",
+    "basePrice": 200,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 19,
+      "runs": 381,
+      "average": 21.17,
+      "strikeRate": 129.86,
+      "fantasyPoints": 320
+    }
+  },
+  {
+    "name": "Nicholas Pooran",
+    "team": "LSG",
+    "role": "WK",
+    "basePrice": 1600,
+    "category": "INTERNATIONAL",
+    "stats": {
+      "matches": 32,
+      "runs": 857,
+      "average": 28.57,
+      "strikeRate": 152.58,
+      "fantasyPoints": 520
+    }
+  }
+]

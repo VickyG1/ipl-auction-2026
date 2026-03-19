@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(curl http://localhost:5001/api/players)",
+      "Bash(npm start:*)",
+      "Bash(pkill -f \"ts-node src/index.ts\")",
+      "Bash(netstat -ano)",
+      "Bash(curl:*)",
+      "Read(//c/Program Files/**)",
+      "Bash(./ngrok http:*)",
+      "Bash(where ngrok:*)",
+      "Read(//mnt/c/**)"
+    ]
+  }
+}
