@@ -4,13 +4,11 @@
   "description": "Complete IPL 2026 auction tool with real-time bidding",
   "private": true,
   "scripts": {
-    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
-    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "install": "npm install && cd backend && npm install",
+    "build": "cd backend && npm run build",
     "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\"",
     "start": "cd backend && npm start",
-    "start:prod": "cd backend && npm run build && npm start",
-    "start-local": "npm run build && npm start",
-    "clean": "cd backend && npm run clean && cd ../frontend && rm -rf build"
+    "clean": "cd backend && npm run clean"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

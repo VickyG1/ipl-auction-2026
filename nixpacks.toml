@@ -1,0 +1,10 @@
+[phases.build]
+dependsOn = ["install"]
+cmds = ["npm run build"]
+
+[phases.install]
+dependsOn = ["setup"]
+cmds = ["npm ci --only=production", "cd backend && npm ci --only=production"]
+
+[variables]
+NODE_ENV = "production"
