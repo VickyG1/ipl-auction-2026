@@ -1,9 +1,23 @@
 import axios from 'axios';
 import { Player, Auction, Squad } from '../types';
 
-const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? '/api'
-  : 'http://localhost:5001/api';
+// Try localhost first, fallback to network IP if needed
+const getApiBaseUrl = () => {
+  if (process.env.NODE_ENV === 'production') {
+    return '/api';
+  }
+
+  // For development, try to detect the right URL
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:5001/api';
+  } else {
+    // If accessing via network IP, use network IP for API too
+    return 'http://10.171.116.70:5001/api';
+  }
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
