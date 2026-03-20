@@ -56,9 +56,10 @@ app.get('/api/debug', (req, res) => {
     cwd: process.cwd(),
     dirname: __dirname,
     nodeEnv: process.env.NODE_ENV,
-    frontendExists: fs.existsSync(path.join(process.cwd(), 'frontend/build')),
-    dataExists: fs.existsSync(path.join(process.cwd(), 'data')),
-    files: fs.readdirSync(process.cwd())
+    frontendExists: fs.existsSync(path.join(process.cwd(), '../frontend/build')),
+    dataExists: fs.existsSync(path.join(process.cwd(), '../data')),
+    files: fs.readdirSync(process.cwd()),
+    parentFiles: fs.existsSync(path.join(process.cwd(), '..')) ? fs.readdirSync(path.join(process.cwd(), '..')) : 'NO_PARENT'
   });
 });
 
@@ -81,7 +82,7 @@ app.get('/api/auctions/:id/squads', (req, res) => auctionController.getSquads(re
 
 // Serve static files from React build (for production)
 if (process.env.NODE_ENV === 'production') {
-  const frontendBuildPath = path.join(process.cwd(), 'frontend/build');
+  const frontendBuildPath = path.join(process.cwd(), '../frontend/build');
   console.log('🌐 Production mode detected');
   console.log('📁 Frontend build path:', frontendBuildPath);
   console.log('📁 Current working directory:', process.cwd());
