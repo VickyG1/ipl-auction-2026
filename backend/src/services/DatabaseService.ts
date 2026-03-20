@@ -654,7 +654,7 @@ export class DatabaseService {
 
       try {
         // Read the JSON file
-        const dataPath = path.join(process.cwd(), '../data/ipl-players-2025-complete.json');
+        const dataPath = path.join(process.cwd(), 'data/ipl-players-2025-complete.json');
         console.log('Trying to read from:', dataPath);
         console.log('File exists:', fs.existsSync(dataPath));
 
