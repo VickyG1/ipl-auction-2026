@@ -8,8 +8,8 @@ WORKDIR /app
 COPY backend/package*.json ./backend/
 WORKDIR /app/backend
 
-# Install backend dependencies
-RUN npm ci --only=production
+# Install ALL dependencies (needed for TypeScript build)
+RUN npm ci
 
 # Copy backend source code
 COPY backend ./
