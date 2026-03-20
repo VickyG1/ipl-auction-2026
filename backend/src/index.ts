@@ -48,6 +48,20 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Debug route for Railway
+app.get('/api/debug', (req, res) => {
+  const fs = require('fs');
+  res.json({
+    success: true,
+    cwd: process.cwd(),
+    dirname: __dirname,
+    nodeEnv: process.env.NODE_ENV,
+    frontendExists: fs.existsSync(path.join(process.cwd(), 'frontend/build')),
+    dataExists: fs.existsSync(path.join(process.cwd(), 'data')),
+    files: fs.readdirSync(process.cwd())
+  });
+});
+
 // Player routes
 app.get('/api/players', (req, res) => playerController.getAllPlayers(req, res));
 app.get('/api/players/:id', (req, res) => playerController.getPlayerById(req, res));
@@ -68,23 +82,54 @@ app.get('/api/auctions/:id/squads', (req, res) => auctionController.getSquads(re
 // Serve static files from React build (for production)
 if (process.env.NODE_ENV === 'production') {
   const frontendBuildPath = path.join(process.cwd(), 'frontend/build');
-  console.log('Serving frontend from:', frontendBuildPath);
+  console.log('🌐 Production mode detected');
+  console.log('📁 Frontend build path:', frontendBuildPath);
+  console.log('📁 Current working directory:', process.cwd());
+  console.log('📁 __dirname:', __dirname);
 
-  app.use(express.static(frontendBuildPath));
+  const fs = require('fs');
+  console.log('📋 Directory contents:', fs.existsSync(frontendBuildPath) ? 'EXISTS' : 'MISSING');
+  if (fs.existsSync(frontendBuildPath)) {
+    console.log('📋 Build directory files:', fs.readdirSync(frontendBuildPath));
+  }
 
-  // Serve React app for any non-API routes
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendBuildPath, 'index.html'));
-  });
+  try {
+    app.use(express.static(frontendBuildPath));
+    console.log('✅ Static middleware configured');
+
+    // Serve React app for any non-API routes
+    app.get('*', (req, res) => {
+      console.log('📄 Serving index.html for:', req.url);
+      const indexPath = path.join(frontendBuildPath, 'index.html');
+      console.log('📄 Index path:', indexPath, fs.existsSync(indexPath) ? 'EXISTS' : 'MISSING');
+      res.sendFile(indexPath);
+    });
+  } catch (error: any) {
+    console.error('❌ Error setting up static serving:', error);
+    app.get('/', (req, res) => {
+      res.json({
+        error: 'Frontend serving failed',
+        details: error?.message || 'Unknown error',
+        path: frontendBuildPath
+      });
+    });
+  }
 }
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('=== ERROR DETAILS ===');
   console.error('Error:', err);
+  console.error('Stack:', err.stack);
+  console.error('Request URL:', req.url);
+  console.error('Request Method:', req.method);
+  console.error('===================');
   res.status(500).json({
     success: false,
     message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    url: req.url,
+    method: req.method
   });
 });
 
