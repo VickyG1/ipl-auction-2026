@@ -1,15 +1,12 @@
 import { Request, Response } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
-import { PlayerScraper } from '../services/PlayerScraper';
 import Joi from 'joi';
 
 export class PlayerController {
   private db: DatabaseService;
-  private scraper: PlayerScraper;
 
   constructor() {
     this.db = DatabaseService.getInstance();
-    this.scraper = new PlayerScraper();
   }
 
   async getAllPlayers(req: Request, res: Response): Promise<void> {
@@ -55,19 +52,19 @@ export class PlayerController {
     }
   }
 
-  async importPlayers(req: Request, res: Response): Promise<void> {
+  async importPlayersFromJson(req: Request, res: Response): Promise<void> {
     try {
-      const importedCount = await this.scraper.scrapeAndImportPlayers();
+      const importedCount = await this.db.importPlayersFromJson();
 
       res.json({
         success: true,
-        message: `Successfully imported ${importedCount} players`,
+        message: `Successfully imported ${importedCount} players from JSON file`,
         count: importedCount
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Failed to import players',
+        message: 'Failed to import players from JSON',
         error: error instanceof Error ? error.message : String(error)
       });
     }

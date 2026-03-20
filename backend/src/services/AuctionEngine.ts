@@ -5,6 +5,7 @@ import { Player, Auction, Squad, Bid, BidEvent, AuctionStatus, PlayerRole } from
 export class AuctionEngine extends EventEmitter {
   private db: DatabaseService;
   private activeTimers: Map<string, NodeJS.Timeout> = new Map();
+  private auctionPlayerOrders: Map<string, Player[]> = new Map(); // Store player orders for each auction
 
   constructor() {
     super();
@@ -59,6 +60,7 @@ export class AuctionEngine extends EventEmitter {
       userName,
       budgetRemaining: auction.settings.maxBudget,
       playerCount: 0,
+      overseasCount: 0,
       roleCounts: {
         [PlayerRole.WK]: 0,
         [PlayerRole.BAT]: 0,
@@ -80,13 +82,22 @@ export class AuctionEngine extends EventEmitter {
       throw new Error('Auction already started');
     }
 
-    // Start with first player
-    const players = await this.db.getAllPlayers();
-    if (players.length === 0) {
+    // Randomize player order freshly for this auction
+    await this.db.randomizePlayerOrder();
+
+    // Get players in their newly randomized auction order
+    const allPlayers = await this.db.getAllPlayers();
+    if (allPlayers.length === 0) {
       throw new Error('No players available for auction');
     }
 
-    const firstPlayer = players[0];
+    console.log(`🏏 Starting auction with ${allPlayers.length} players`);
+    console.log(`🎯 Players are already ordered set-wise with randomization from import`);
+
+    const firstPlayer = allPlayers[0];
+
+    // Store the ordered player list for auction progression
+    await this.storeAuctionPlayerOrder(auctionId, allPlayers);
 
     await this.db.updateAuction(auctionId, {
       status: AuctionStatus.ACTIVE,
@@ -97,6 +108,15 @@ export class AuctionEngine extends EventEmitter {
     this.startTimer(auctionId, firstPlayer.id, auction.settings.bidTimer);
 
     this.emit('auctionStarted', { auctionId, player: firstPlayer });
+  }
+
+  private async storeAuctionPlayerOrder(auctionId: string, players: Player[]): Promise<void> {
+    this.auctionPlayerOrders.set(auctionId, players);
+    console.log(`Stored player order for auction ${auctionId}: ${players.length} players`);
+  }
+
+  private getAuctionPlayerOrder(auctionId: string): Player[] | null {
+    return this.auctionPlayerOrders.get(auctionId) || null;
   }
 
   async placeBid(auctionId: string, playerId: string, userId: string, userName: string, amount: number): Promise<boolean> {
@@ -118,12 +138,17 @@ export class AuctionEngine extends EventEmitter {
     }
 
     // Validate bid amount
+    const currentAmount = currentHighestBid ? currentHighestBid.amount : player.basePrice;
+    const minimumIncrement = this.calculateMinimumIncrement(currentAmount);
     const minimumBid = currentHighestBid
-      ? currentHighestBid.amount + auction.settings.bidIncrement
-      : player.basePrice;
+      ? currentHighestBid.amount + minimumIncrement  // Subsequent bids: previous + increment
+      : player.basePrice;                           // First bid: can equal base price
 
     if (amount < minimumBid) {
-      throw new Error(`Minimum bid is ${minimumBid} lakhs`);
+      const errorMessage = currentHighestBid
+        ? `Minimum bid is ${minimumBid} lakhs (current bid + increment)`
+        : `Minimum bid is ${minimumBid} lakhs (base price)`;
+      throw new Error(errorMessage);
     }
 
     // Check if user can afford this bid
@@ -173,9 +198,42 @@ export class AuctionEngine extends EventEmitter {
     return true;
   }
 
+  async getMinimumBid(auctionId: string, playerId: string): Promise<{ minimumBid: number, isFirstBid: boolean }> {
+    const currentHighestBid = await this.db.getHighestBid(auctionId, playerId);
+    const player = await this.db.getPlayerById(playerId);
+
+    if (!player) {
+      throw new Error('Player not found');
+    }
+
+    const isFirstBid = !currentHighestBid;
+    const minimumBid = isFirstBid
+      ? player.basePrice  // First bid can equal base price
+      : currentHighestBid.amount + this.calculateMinimumIncrement(currentHighestBid.amount);
+
+    return { minimumBid, isFirstBid };
+  }
+
+  private calculateMinimumIncrement(currentAmount: number): number {
+    // Same rules as frontend:
+    // Till 1 CR (100 lakhs) - minimum 10 lakhs increment
+    // 1 CR to 10 CR (100-1000 lakhs) - minimum 20 lakhs increment
+    // After 10 CR (1000+ lakhs) - minimum 50 lakhs increment
+
+    if (currentAmount < 100) return 10;      // Till 1 CR
+    else if (currentAmount < 1000) return 20; // 1 CR to 10 CR
+    else return 50;                          // After 10 CR
+  }
+
   private canAddPlayerToSquad(squad: Squad, player: Player): boolean {
     // Check player count
     if (squad.playerCount >= 12) {
+      return false;
+    }
+
+    // Check overseas player limit (max 4 overseas players)
+    const currentOverseasCount = squad.overseasCount || 0;
+    if ((player as any).isOverseas && currentOverseasCount >= 4) {
       return false;
     }
 
@@ -219,55 +277,89 @@ export class AuctionEngine extends EventEmitter {
   }
 
   private async handleTimerExpired(auctionId: string, playerId: string): Promise<void> {
+    console.log('Timer expired for player:', playerId, 'in auction:', auctionId);
+
     const highestBid = await this.db.getHighestBid(auctionId, playerId);
     const player = await this.db.getPlayerById(playerId);
 
     if (!player) {
-      console.error('Player not found during timer expiry');
+      console.error('Player not found during timer expiry:', playerId);
       return;
     }
+
+    console.log('Player found:', player.name, 'Highest bid:', highestBid?.amount || 'None');
 
     if (highestBid) {
       // Player sold - add to squad
       const squads = await this.db.getSquadsByAuction(auctionId);
       const winnerSquad = squads.find(s => s.userId === highestBid.userId);
 
+      console.log('Winner squad found:', winnerSquad?.userName, 'Squad ID:', winnerSquad?.id);
+
       if (winnerSquad) {
+        console.log('Adding player to squad...');
         await this.addPlayerToSquad(winnerSquad.id, player, highestBid.amount);
+
+        // Get updated squads after purchase
+        console.log('Getting updated squads...');
+        const updatedSquads = await this.db.getSquadsByAuction(auctionId);
+
+        console.log('Updated squads data:', JSON.stringify(updatedSquads.map(s => ({
+          userName: s.userName,
+          players: s.players.map(p => ({ name: p.name, purchasePrice: p.purchasePrice }))
+        })), null, 2));
+
+        console.log('Emitting playerSold event...');
         this.emit('playerSold', {
           auctionId,
           playerId,
           winner: highestBid.userName,
-          amount: highestBid.amount
+          amount: highestBid.amount,
+          updatedSquads // Include updated squad info
         });
       }
     } else {
       // Player unsold
+      console.log('Player unsold, emitting playerUnsold event...');
       this.emit('playerUnsold', { auctionId, playerId });
     }
 
     // Move to next player
+    console.log('Moving to next player...');
     await this.moveToNextPlayer(auctionId);
   }
 
   private async addPlayerToSquad(squadId: string, player: Player, purchasePrice: number): Promise<void> {
-    await this.db.addPlayerToSquad(squadId, player.id, purchasePrice);
-
-    // Update squad totals - in a production system, this would be done in a transaction
-    // For now, we'll calculate these on the fly when needed
+    await this.db.addPlayerToSquad(squadId, player, purchasePrice);
   }
 
   private async moveToNextPlayer(auctionId: string): Promise<void> {
-    const players = await this.db.getAllPlayers();
+    console.log('Moving to next player for auction:', auctionId);
+
+    // Use stored player order for this auction
+    const orderedPlayers = this.getAuctionPlayerOrder(auctionId);
     const auction = await this.db.getAuctionById(auctionId);
 
-    if (!auction) return;
+    if (!auction) {
+      console.error('Auction not found:', auctionId);
+      return;
+    }
 
-    const currentIndex = players.findIndex(p => p.id === auction.currentPlayerId);
+    if (!orderedPlayers) {
+      console.error('No player order found for auction:', auctionId);
+      return;
+    }
+
+    console.log('Total ordered players:', orderedPlayers.length, 'Current player ID:', auction.currentPlayerId);
+
+    const currentIndex = orderedPlayers.findIndex(p => p.id === auction.currentPlayerId);
     const nextIndex = currentIndex + 1;
 
-    if (nextIndex >= players.length) {
+    console.log('Current player index:', currentIndex, 'Next index:', nextIndex);
+
+    if (nextIndex >= orderedPlayers.length) {
       // Auction complete
+      console.log('Auction complete - no more players');
       await this.db.updateAuction(auctionId, {
         status: AuctionStatus.COMPLETED,
         currentPlayerId: undefined,
@@ -277,8 +369,17 @@ export class AuctionEngine extends EventEmitter {
       this.emit('auctionComplete', { auctionId });
     } else {
       // Move to next player
-      const nextPlayer = players[nextIndex];
+      const nextPlayer = orderedPlayers[nextIndex];
       const timerEnd = new Date(Date.now() + auction.settings.bidTimer * 1000);
+
+      const nextPlayerSetNumber = (nextPlayer as any).setNumber || 0;
+      const currentPlayerSetNumber = currentIndex >= 0 ? (orderedPlayers[currentIndex] as any).setNumber || 0 : 0;
+
+      if (nextPlayerSetNumber !== currentPlayerSetNumber) {
+        console.log(`Moving from Set ${currentPlayerSetNumber} to Set ${nextPlayerSetNumber}`);
+      }
+
+      console.log('Moving to next player:', nextPlayer.name, 'ID:', nextPlayer.id, 'Set:', nextPlayerSetNumber);
 
       await this.db.updateAuction(auctionId, {
         currentPlayerId: nextPlayer.id,
@@ -288,6 +389,7 @@ export class AuctionEngine extends EventEmitter {
       this.startTimer(auctionId, nextPlayer.id, auction.settings.bidTimer);
 
       this.emit('nextPlayer', { auctionId, player: nextPlayer });
+      console.log('Emitted nextPlayer event for:', nextPlayer.name);
     }
   }
 
@@ -310,6 +412,28 @@ export class AuctionEngine extends EventEmitter {
 
     this.startTimer(auctionId, auction.currentPlayerId, auction.settings.bidTimer);
     this.emit('auctionResumed', { auctionId });
+  }
+
+  async sellPlayerNow(auctionId: string, playerId: string): Promise<boolean> {
+    console.log('Sell player now called for:', playerId, 'in auction:', auctionId);
+
+    const auction = await this.db.getAuctionById(auctionId);
+    if (!auction || auction.status !== AuctionStatus.ACTIVE) {
+      console.error('Auction not active or not found');
+      throw new Error('Auction not active');
+    }
+
+    if (auction.currentPlayerId !== playerId) {
+      console.error('Player not currently up for auction. Current:', auction.currentPlayerId, 'Requested:', playerId);
+      throw new Error('Player not currently up for auction');
+    }
+
+    // Clear the timer and trigger immediate sale
+    console.log('Clearing timer and triggering immediate sale...');
+    this.clearTimer(auctionId);
+    await this.handleTimerExpired(auctionId, playerId);
+
+    return true;
   }
 
   async getSquadsByAuction(auctionId: string): Promise<Squad[]> {
@@ -346,5 +470,8 @@ export class AuctionEngine extends EventEmitter {
     // Clear all active timers
     this.activeTimers.forEach(timer => clearTimeout(timer));
     this.activeTimers.clear();
+
+    // Clear stored player orders
+    this.auctionPlayerOrders.clear();
   }
 }

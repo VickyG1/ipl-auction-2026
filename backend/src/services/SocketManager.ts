@@ -18,7 +18,7 @@ export class SocketManager {
       cors: {
         origin: process.env.NODE_ENV === 'production'
           ? false
-          : ['http://localhost:3000', 'http://10.171.116.70:3000'],
+          : ['http://localhost:3000', 'http://10.171.116.70:3000', 'http://localhost:5002', 'http://10.171.116.70:5002'],
         methods: ['GET', 'POST']
       }
     });
@@ -195,6 +195,24 @@ export class SocketManager {
         } catch (error) {
           socket.emit('error', {
             message: 'Failed to get squads',
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      });
+
+      socket.on('sell_player_now', async (data: { auctionId: string, playerId: string }) => {
+        try {
+          const user = this.connectedUsers.get(socket.id);
+          if (!user) {
+            socket.emit('error', { message: 'User not authenticated' });
+            return;
+          }
+
+          await this.auctionEngine.sellPlayerNow(data.auctionId, data.playerId);
+
+        } catch (error) {
+          socket.emit('error', {
+            message: 'Failed to sell player',
             error: error instanceof Error ? error.message : String(error)
           });
         }

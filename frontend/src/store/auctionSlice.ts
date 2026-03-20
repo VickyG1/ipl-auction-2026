@@ -71,23 +71,8 @@ const auctionSlice = createSlice({
     },
 
     playerSold: (state, action: PayloadAction<{ playerId: string; winner: string; amount: number }>) => {
-      // Update the squad that bought the player
-      const { winner, amount } = action.payload;
-      const winnerSquad = state.squads.find(squad => squad.userName === winner);
-
-      if (winnerSquad && state.currentPlayer) {
-        // Add player to squad
-        winnerSquad.players.push(state.currentPlayer);
-        winnerSquad.playerCount++;
-        winnerSquad.budgetRemaining -= amount;
-
-        // Update role counts
-        if (state.currentPlayer.role) {
-          winnerSquad.roleCounts[state.currentPlayer.role]++;
-        }
-      }
-
-      // Clear current player and bid
+      // Don't manipulate squad data here - it will be updated via updateSquads action
+      // Just clear current player and bid
       state.currentPlayer = null;
       state.currentBid = null;
       state.timeRemaining = 0;

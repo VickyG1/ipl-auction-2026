@@ -105,6 +105,12 @@ class SocketService {
     this.socket.emit('get_squads', { auctionId });
   }
 
+  sellPlayerNow(auctionId: string, playerId: string): void {
+    if (!this.socket) throw new Error('Socket not connected');
+
+    this.socket.emit('sell_player_now', { auctionId, playerId });
+  }
+
   // Event listener management
   on<K extends keyof SocketEvents>(event: K, callback: SocketEvents[K]): void {
     if (!this.eventListeners.has(event)) {

@@ -15,7 +15,7 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Initialize Socket Manager
 const socketManager = new SocketManager(server);
@@ -32,8 +32,8 @@ app.use(helmet({
 app.use(compression());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? false
-    : ['http://localhost:3000', 'http://10.171.116.70:3000'],
+    ? process.env.CORS_ORIGINS?.split(',') || true
+    : ['http://localhost:3000', 'http://10.171.116.70:3000', 'http://localhost:5002', 'http://10.171.116.70:5002'],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -51,7 +51,8 @@ app.get('/api/health', (req, res) => {
 // Player routes
 app.get('/api/players', (req, res) => playerController.getAllPlayers(req, res));
 app.get('/api/players/:id', (req, res) => playerController.getPlayerById(req, res));
-app.post('/api/players/import', (req, res) => playerController.importPlayers(req, res));
+// app.post('/api/players/import', (req, res) => playerController.importPlayers(req, res)); // DISABLED: Use JSON import only
+app.post('/api/players/import-json', (req, res) => playerController.importPlayersFromJson(req, res));
 
 // Auction routes
 app.post('/api/auctions', (req, res) => auctionController.createAuction(req, res));
@@ -61,6 +62,7 @@ app.get('/api/auctions/:id/state', (req, res) => auctionController.getAuctionSta
 app.post('/api/auctions/:id/start', (req, res) => auctionController.startAuction(req, res));
 app.post('/api/auctions/:id/pause', (req, res) => auctionController.pauseAuction(req, res));
 app.post('/api/auctions/:id/resume', (req, res) => auctionController.resumeAuction(req, res));
+app.post('/api/auctions/:id/sell-now', (req, res) => auctionController.sellPlayerNow(req, res));
 app.get('/api/auctions/:id/squads', (req, res) => auctionController.getSquads(req, res));
 
 // Serve static files from React build (for production)

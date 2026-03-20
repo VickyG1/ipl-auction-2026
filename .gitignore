@@ -13,3 +13,21 @@ coverage/
 .cache/
 temp/
 tmp/
+
+# Excel files and backups
+*.xlsx
+*.xls
+~$*.xlsx
+~$*.xls
+
+# IDE files
+.idea/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+
+# Build artifacts
+*.tgz
+*.tar.gz

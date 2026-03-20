@@ -7,7 +7,14 @@ export interface Player {
   category?: PlayerCategory;
   stats?: PlayerStats;
   imageUrl?: string;
+  country?: string;
+  isOverseas?: boolean;
+  setNumber?: number;
+  battingStyle?: string;
+  bowlingStyle?: string;
+  previousTeam?: string;
   scrapedAt?: Date;
+  purchasePrice?: number; // in lakhs - only present when player is in a squad
 }
 
 export enum PlayerRole {
@@ -69,6 +76,7 @@ export interface Squad {
   userName: string;
   budgetRemaining: number;
   playerCount: number;
+  overseasCount?: number;
   roleCounts: Record<PlayerRole, number>;
   players: Player[];
   createdAt: Date;
@@ -97,7 +105,7 @@ export interface AuctionState {
 export interface SocketEvents {
   auction_started: (data: { auctionId: string; player: Player }) => void;
   bid_placed: (data: { auctionId: string; playerId: string; bid: Bid; timeRemaining: number }) => void;
-  player_sold: (data: { auctionId: string; playerId: string; winner: string; amount: number }) => void;
+  player_sold: (data: { auctionId: string; playerId: string; winner: string; amount: number; updatedSquads?: Squad[] }) => void;
   player_unsold: (data: { auctionId: string; playerId: string }) => void;
   next_player: (data: { auctionId: string; player: Player }) => void;
   auction_complete: (data: { auctionId: string }) => void;

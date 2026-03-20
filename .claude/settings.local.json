@@ -11,7 +11,30 @@
       "Read(//c/Program Files/**)",
       "Bash(./ngrok http:*)",
       "Bash(where ngrok:*)",
-      "Read(//mnt/c/**)"
+      "Read(//mnt/c/**)",
+      "WebSearch",
+      "Bash(taskkill:*)",
+      "Bash(node reset-auction.js)",
+      "Bash(jq \".data | group_by\\(.setNumber\\) | map\\({set: .[0].setNumber, count: length, players: [.[0].name, .[1].name // \"\"only 1\"\", .[2].name // \"\"only 2\"\"]}\\)\")",
+      "Bash(node clear-all-players.js)",
+      "Bash(node check-db-schema.js)",
+      "Bash(node test-player-order.js)",
+      "Bash(node test-query.js)",
+      "Bash(cd:*)",
+      "Bash(powershell \"Remove-Item -Force auction.db\")",
+      "Bash(node rebuild-database.js)",
+      "Bash(node check-auctions.js)",
+      "Bash(node cleanup-auctions.js)",
+      "Bash(node check-schema.js)",
+      "Bash(node test-socket.js)",
+      "Bash(node list-auctions.js)",
+      "Bash(node clear-for-test.js)",
+      "Bash(rm -f clear-for-test.js)",
+      "Bash(sqlite3 auction.db \"SELECT COUNT\\(*\\) as total_players FROM players;\")",
+      "Bash(find '/c/Users/vgangar/IPL 2026 Auction' -name *.tmp -o -name *.log -o -name node_modules -o -name .git -o -name *.cache)",
+      "Bash(grep -E \"\\\\.\\(txt|xlsx\\)$\")",
+      "Bash(npm uninstall:*)",
+      "Bash(\"/c/Users/vgangar/IPL 2026:*)"
     ]
   }
 }

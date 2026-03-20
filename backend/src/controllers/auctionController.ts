@@ -203,4 +203,32 @@ export class AuctionController {
       });
     }
   }
+
+  async sellPlayerNow(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params; // auction id
+      const { playerId } = req.body;
+
+      if (!playerId) {
+        res.status(400).json({
+          success: false,
+          message: 'Player ID is required'
+        });
+        return;
+      }
+
+      await this.auctionEngine.sellPlayerNow(id, playerId);
+
+      res.json({
+        success: true,
+        message: 'Player sold successfully'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to sell player',
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
 }

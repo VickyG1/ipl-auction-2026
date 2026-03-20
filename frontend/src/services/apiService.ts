@@ -86,7 +86,7 @@ export const apiService = {
   },
 
   async importPlayers(): Promise<number> {
-    const response = await api.post<ApiResponse<{ count: number }>>('/players/import');
+    const response = await api.post<ApiResponse<{ count: number }>>('/players/import-json');
     if (!response.data.success) {
       throw new Error(response.data.message || 'Failed to import players');
     }

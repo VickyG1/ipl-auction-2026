@@ -39,6 +39,7 @@ import {
   updateTimer,
   playerSold,
   playerUnsold,
+  updateSquads,
   updateConnectedUsers,
   auctionComplete,
   pauseAuction,
@@ -97,6 +98,7 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
 
   const [bidAmount, setBidAmount] = useState<string>('');
   const [showBidDialog, setShowBidDialog] = useState(false);
+  const [showSquadDetails, setShowSquadDetails] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -126,6 +128,17 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
 
     socketService.on('player_sold', (data) => {
       dispatch(playerSold(data));
+
+      // Update squads if provided
+      if (data.updatedSquads) {
+        console.log('Frontend received updated squads:', JSON.stringify(data.updatedSquads.map(s => ({
+          userName: s.userName,
+          players: s.players.map(p => ({ name: p.name, purchasePrice: p.purchasePrice }))
+        })), null, 2));
+
+        dispatch(updateSquads(data.updatedSquads));
+      }
+
       setSnackbar({
         open: true,
         message: `${currentPlayer?.name} sold to ${data.winner} for ₹${data.amount} lakhs!`,
@@ -230,7 +243,7 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
     if (!currentPlayer || !bidAmount) return;
 
     const amount = parseFloat(bidAmount);
-    const minBid = currentBid ? currentBid.amount + (currentAuction?.settings.bidIncrement || 5) : currentPlayer.basePrice;
+    const minBid = currentBid ? currentBid.amount + getMinBidIncrement() : currentPlayer.basePrice;
 
     if (amount < minBid) {
       setSnackbar({
@@ -255,15 +268,42 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
     setBidAmount('');
   };
 
+  const getMinBidIncrement = () => {
+    if (!currentPlayer) return 5;
+    const currentAmount = currentBid ? currentBid.amount : currentPlayer.basePrice;
+
+    if (currentAmount < 100) return 10;      // Till 1 CR - 10 lakhs increment
+    else if (currentAmount < 1000) return 20; // 1 CR to 10 CR - 20 lakhs increment
+    else return 50;                          // After 10 CR - 50 lakhs increment
+  };
+
   const getQuickBidAmount = () => {
     if (!currentPlayer) return 0;
-    const minBid = currentBid ? currentBid.amount + (currentAuction?.settings.bidIncrement || 5) : currentPlayer.basePrice;
-    return minBid;
+
+    // If there's no current bid, return base price (first bid)
+    if (!currentBid) {
+      return currentPlayer.basePrice;
+    }
+
+    // If there is a current bid, return current bid + increment
+    const increment = getMinBidIncrement();
+    return currentBid.amount + increment;
   };
 
   const handleQuickBid = () => {
     const amount = getQuickBidAmount();
     socketService.placeBid(auctionId, currentPlayer!.id, amount);
+  };
+
+  const handleSellNow = (playerId: string) => {
+    if (!currentPlayer) return;
+
+    socketService.sellPlayerNow(auctionId, playerId);
+    setSnackbar({
+      open: true,
+      message: 'Selling player immediately...',
+      severity: 'success'
+    });
   };
 
   const getRoleColor = (role: PlayerRole) => {
@@ -273,6 +313,16 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
       case PlayerRole.AR: return 'warning';
       case PlayerRole.BOWL: return 'error';
       default: return 'default';
+    }
+  };
+
+  const getRoleDisplayName = (role: PlayerRole) => {
+    switch (role) {
+      case PlayerRole.WK: return 'WICKETKEEPER';
+      case PlayerRole.BAT: return 'BATTER';
+      case PlayerRole.AR: return 'ALL-ROUNDER';
+      case PlayerRole.BOWL: return 'BOWLER';
+      default: return 'UNKNOWN';
     }
   };
 
@@ -347,6 +397,13 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
                     Resume
                   </Button>
                 )}
+                <Button
+                  variant="outlined"
+                  onClick={() => setShowSquadDetails(true)}
+                  disabled={squads.length === 0}
+                >
+                  View All Squads
+                </Button>
               </Box>
             </Box>
           </Paper>
@@ -373,9 +430,36 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
                     <Typography variant="h4" gutterBottom>
                       {currentPlayer.name}
                     </Typography>
+
+                    {/* Enhanced player details */}
+                    <Box display="flex" gap={2} alignItems="center" mb={1}>
+                      <Chip
+                        label={(currentPlayer as any).country || 'India'}
+                        color={(currentPlayer as any).isOverseas ? 'secondary' : 'primary'}
+                        size="small"
+                      />
+                      <Chip
+                        label={(currentPlayer as any).isOverseas ? 'OVERSEAS' : 'INDIAN'}
+                        color={(currentPlayer as any).isOverseas ? 'warning' : 'success'}
+                        size="small"
+                      />
+                      <Chip
+                        label={getRoleDisplayName(currentPlayer.role)}
+                        variant="outlined"
+                        size="small"
+                      />
+                      {(currentPlayer as any).setNumber !== undefined && (
+                        <Chip
+                          label={`Set ${(currentPlayer as any).setNumber}`}
+                          color="default"
+                          size="small"
+                        />
+                      )}
+                    </Box>
+
                     {currentPlayer.team && (
                       <Typography variant="h6" color="textSecondary">
-                        {currentPlayer.team}
+                        Previous Team: {currentPlayer.team}
                       </Typography>
                     )}
                     <Typography variant="body1" sx={{ mt: 1 }}>
@@ -425,6 +509,28 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
                         </Button>
                       </BidControls>
                     )}
+
+                    {/* Sell Now Button for Auction Host */}
+                    {isConnected && currentPlayer && (
+                      <Box sx={{ mt: 2 }}>
+                        <Button
+                          variant="contained"
+                          color="success"
+                          size="small"
+                          onClick={() => handleSellNow(currentPlayer.id)}
+                          disabled={!isConnected}
+                          sx={{
+                            backgroundColor: '#4caf50',
+                            '&:hover': { backgroundColor: '#45a049' }
+                          }}
+                        >
+                          🔨 Sell Now
+                        </Button>
+                        <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary' }}>
+                          Host can sell player immediately
+                        </Typography>
+                      </Box>
+                    )}
                   </>
                 )}
               </CardContent>
@@ -455,6 +561,14 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
                     </Typography>
                     <Typography variant="body1" color="primary">
                       Budget: {formatBudget(userSquad.budgetRemaining)}
+                    </Typography>
+                  </Box>
+                  <Box display="flex" justifyContent="space-between" mb={2}>
+                    <Typography variant="body2" color="text.secondary">
+                      Overseas: {(userSquad as any).overseasCount || 0}/4
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Spent: {formatBudget(12000 - userSquad.budgetRemaining)}
                     </Typography>
                   </Box>
 
@@ -545,6 +659,9 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
                       <Typography variant="body2" color="textSecondary">
                         Players: {squad.playerCount}/12
                       </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Overseas: {(squad as any).overseasCount || 0}/4
+                      </Typography>
                       <Typography variant="body2" color="primary">
                         Budget: {formatBudget(squad.budgetRemaining)}
                       </Typography>
@@ -553,6 +670,35 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
                           WK:{squad.roleCounts[PlayerRole.WK]} | BAT:{squad.roleCounts[PlayerRole.BAT]} |{' '}
                           AR:{squad.roleCounts[PlayerRole.AR]} | BOWL:{squad.roleCounts[PlayerRole.BOWL]}
                         </Typography>
+                      </Box>
+                      {squad.players && squad.players.length > 0 && (
+                        <Box mt={1}>
+                          <Typography variant="caption" color="textSecondary" display="block">
+                            Players:
+                          </Typography>
+                          {squad.players.slice(0, 3).map((player, index) => (
+                            <Typography key={player.id} variant="caption" display="block" sx={{ fontSize: '0.7rem' }}>
+                              {getRoleIcon(player.role)} {player.name}
+                              {player.purchasePrice && ` (₹${(player.purchasePrice / 100).toFixed(1)}Cr)`}
+                            </Typography>
+                          ))}
+                          {squad.players.length > 3 && (
+                            <Typography variant="caption" color="primary" sx={{ cursor: 'pointer' }}
+                              onClick={() => setShowSquadDetails(true)}>
+                              +{squad.players.length - 3} more...
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
+                      <Box mt={1}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => setShowSquadDetails(true)}
+                          fullWidth
+                        >
+                          View Details
+                        </Button>
                       </Box>
                     </CardContent>
                   </Card>
@@ -575,16 +721,118 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
             fullWidth
             variant="outlined"
             value={bidAmount}
-            onChange={(e) => setBidAmount(e.target.value)}
-            helperText={`Minimum: ₹${getQuickBidAmount()} lakhs`}
+            inputProps={{
+              min: getQuickBidAmount(),
+              step: getMinBidIncrement() // Use proper increment based on current amount
+            }}
+            onChange={(e) => {
+              const value = parseFloat(e.target.value);
+              const minBid = getQuickBidAmount();
+
+              if (value >= minBid || e.target.value === '') {
+                setBidAmount(e.target.value);
+              }
+            }}
+            error={bidAmount !== '' && parseFloat(bidAmount) < getQuickBidAmount()}
+            helperText={bidAmount !== '' && parseFloat(bidAmount) < getQuickBidAmount()
+              ? `Must be at least ₹${getQuickBidAmount()} lakhs`
+              : `Minimum: ₹${getQuickBidAmount()} lakhs (next increment)`
+            }
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowBidDialog(false)}>Cancel</Button>
-          <Button onClick={handlePlaceBid} variant="contained">
+          <Button
+            onClick={handlePlaceBid}
+            variant="contained"
+            disabled={bidAmount === '' || parseFloat(bidAmount) < getQuickBidAmount()}
+          >
             Place Bid
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Squad Details Dialog */}
+      <Dialog
+        open={showSquadDetails}
+        onClose={() => setShowSquadDetails(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h5">Squad Details</Typography>
+            <Button onClick={() => setShowSquadDetails(false)}>✕</Button>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2}>
+            {squads.map((squad) => (
+              <Grid item xs={12} md={6} key={squad.id}>
+                <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
+                  <Typography variant="h6" color="primary" gutterBottom>
+                    {squad.userName}
+                  </Typography>
+
+                  <Box display="flex" justifyContent="space-between" mb={1}>
+                    <Typography variant="body2">
+                      Players: {squad.playerCount}/12
+                    </Typography>
+                    <Typography variant="body2" color="primary">
+                      Budget Left: {formatBudget(squad.budgetRemaining)}
+                    </Typography>
+                  </Box>
+
+                  <Box display="flex" justifyContent="space-between" mb={2}>
+                    <Typography variant="body2">
+                      Overseas: {(squad as any).overseasCount || 0}/4
+                    </Typography>
+                    <Typography variant="body2">
+                      Used: {formatBudget(12000 - squad.budgetRemaining)}
+                    </Typography>
+                  </Box>
+
+                  <Box mb={2}>
+                    <Typography variant="caption">
+                      WK:{squad.roleCounts[PlayerRole.WK]} | BAT:{squad.roleCounts[PlayerRole.BAT]} | AR:{squad.roleCounts[PlayerRole.AR]} | BOWL:{squad.roleCounts[PlayerRole.BOWL]}
+                    </Typography>
+                  </Box>
+
+                  {squad.players && squad.players.length > 0 ? (
+                    <Box>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Squad Players:
+                      </Typography>
+                      {squad.players.map((player, index) => {
+                        console.log(`Rendering player ${player.name}:`, { purchasePrice: player.purchasePrice });
+                        return (
+                          <Box key={player.id} display="flex" justifyContent="space-between" alignItems="center"
+                               sx={{ py: 0.5, borderBottom: index < squad.players.length - 1 ? '1px solid #eee' : 'none' }}>
+                            <Box display="flex" alignItems="center">
+                              <Typography variant="body2" sx={{ minWidth: '30px' }}>
+                                {getRoleIcon(player.role)}
+                              </Typography>
+                              <Typography variant="body2">
+                                {player.name}
+                              </Typography>
+                            </Box>
+                            <Typography variant="body2" color="primary">
+                              {player.purchasePrice ? `₹${(player.purchasePrice / 100).toFixed(1)}Cr` : 'N/A'}
+                            </Typography>
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="textSecondary" sx={{ fontStyle: 'italic' }}>
+                      No players purchased yet
+                    </Typography>
+                  )}
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </DialogContent>
       </Dialog>
 
       {/* Snackbar for notifications */}

@@ -7,7 +7,14 @@ export interface Player {
   category?: PlayerCategory;
   stats?: PlayerStats;
   imageUrl?: string;
+  country?: string;
+  isOverseas?: boolean;
+  setNumber?: number;
+  battingStyle?: string;
+  bowlingStyle?: string;
+  previousTeam?: string;
   scrapedAt?: Date;
+  purchasePrice?: number; // in lakhs - only present when player is in a squad
 }
 
 export enum PlayerRole {
@@ -69,6 +76,7 @@ export interface Squad {
   userName: string;
   budgetRemaining: number;
   playerCount: number;
+  overseasCount?: number;
   roleCounts: Record<PlayerRole, number>;
   players: Player[];
   createdAt: Date;
