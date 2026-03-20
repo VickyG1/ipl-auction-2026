@@ -1,8 +1,5 @@
 [variables]
 NODE_ENV = "production"
 
-[build]
-cmd = "cd backend && npm install && npm run build"
-
 [start]
-cmd = "cd backend && npm start"
+cmd = "npm start"
