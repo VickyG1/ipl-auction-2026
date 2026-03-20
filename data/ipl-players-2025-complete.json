@@ -3196,5 +3196,31 @@
     },
     "age": 30,
     "dateOfBirth": 34664
+  },
+  {
+    "id": 124,
+    "name": "Tilak Varma",
+    "team": null,
+    "role": "BAT",
+    "basePrice": 200,
+    "category": "CAPPED",
+    "setNumber": 0,
+    "country": "India",
+    "overseas": false,
+    "battingStyle": "LHB",
+    "bowlingStyle": null,
+    "fantasyPoints": 0,
+    "stats": {
+      "matches": 0,
+      "runs": 0,
+      "wickets": 0,
+      "average": 0,
+      "strikeRate": 0,
+      "testCaps": 0,
+      "odiCaps": 0,
+      "t20Caps": 0
+    },
+    "age": 22,
+    "dateOfBirth": null
   }
 ]
