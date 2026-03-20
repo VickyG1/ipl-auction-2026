@@ -67,6 +67,22 @@ app.get('/api/auctions/:id/squads', (req, res) => auctionController.getSquads(re
 
 // Serve static files from React build (for production)
 if (process.env.NODE_ENV === 'production') {
+  // For now, serve a simple landing page since frontend build isn't available
+  app.get('/', (req, res) => {
+    res.json({
+      success: true,
+      message: 'IPL 2026 Auction Tool API',
+      version: '1.0.0',
+      endpoints: {
+        health: '/api/health',
+        importPlayers: '/api/players/import-json',
+        getAllPlayers: '/api/players',
+        createAuction: '/api/auctions'
+      },
+      note: 'Frontend will be served from a separate deployment'
+    });
+  });
+} else {
   const frontendBuildPath = path.join(__dirname, '../../frontend/build');
   app.use(express.static(frontendBuildPath));
 
