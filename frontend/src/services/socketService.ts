@@ -111,6 +111,26 @@ class SocketService {
     this.socket.emit('sell_player_now', { auctionId, playerId });
   }
 
+  // ===== UNDO METHODS =====
+
+  undoLastSale(auctionId: string): void {
+    if (!this.socket) throw new Error('Socket not connected');
+
+    this.socket.emit('undo_last_sale', { auctionId });
+  }
+
+  undoPreviousPlayer(auctionId: string): void {
+    if (!this.socket) throw new Error('Socket not connected');
+
+    this.socket.emit('undo_previous_player', { auctionId });
+  }
+
+  undoLastBid(auctionId: string, playerId: string): void {
+    if (!this.socket) throw new Error('Socket not connected');
+
+    this.socket.emit('undo_last_bid', { auctionId, playerId });
+  }
+
   // Event listener management
   on<K extends keyof SocketEvents>(event: K, callback: SocketEvents[K]): void {
     if (!this.eventListeners.has(event)) {

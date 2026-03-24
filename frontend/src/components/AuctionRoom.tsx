@@ -23,7 +23,9 @@ import {
   Timer,
   Gavel,
   PlayArrow,
-  Pause
+  Pause,
+  Undo,
+  SkipPrevious
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -212,6 +214,39 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
       setSnackbar({ open: true, message: data.message, severity: 'error' });
     });
 
+    // Undo event listeners
+    socketService.on('undo_success', (data) => {
+      setSnackbar({
+        open: true,
+        message: data.message,
+        severity: 'success'
+      });
+    });
+
+    socketService.on('player_sale_undone', (data) => {
+      setSnackbar({
+        open: true,
+        message: `Undid sale of ${data.player.name}`,
+        severity: 'success'
+      });
+    });
+
+    socketService.on('undo_to_previous_player', (data) => {
+      setSnackbar({
+        open: true,
+        message: `Moved back to ${data.player.name}`,
+        severity: 'success'
+      });
+    });
+
+    socketService.on('bid_removed', (data) => {
+      setSnackbar({
+        open: true,
+        message: `Removed bid for ${data.playerId}`,
+        severity: 'success'
+      });
+    });
+
     socketService.on('bid_error', (data) => {
       setSnackbar({ open: true, message: data.message, severity: 'error' });
     });
@@ -243,7 +278,8 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
     if (!currentPlayer || !bidAmount) return;
 
     const amount = parseFloat(bidAmount);
-    const minBid = currentBid ? currentBid.amount + getMinBidIncrement() : currentPlayer.basePrice;
+    const currentAmount = currentBid ? currentBid.amount : currentPlayer.basePrice;
+    const minBid = currentBid ? getValidNextBid(currentBid.amount) : currentPlayer.basePrice;
 
     if (amount < minBid) {
       setSnackbar({
@@ -268,13 +304,43 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
     setBidAmount('');
   };
 
-  const getMinBidIncrement = () => {
-    if (!currentPlayer) return 5;
-    const currentAmount = currentBid ? currentBid.amount : currentPlayer.basePrice;
-
+  const getMinBidIncrement = (currentAmount: number) => {
     if (currentAmount < 100) return 10;      // Till 1 CR - 10 lakhs increment
     else if (currentAmount < 1000) return 20; // 1 CR to 10 CR - 20 lakhs increment
     else return 50;                          // After 10 CR - 50 lakhs increment
+  };
+
+  const getValidNextBid = (currentAmount: number): number => {
+    const increment = getMinBidIncrement(currentAmount);
+    let nextBid = currentAmount + increment;
+
+    // Align to valid bid values for the tier
+    if (nextBid < 100) {
+      // Round to nearest 10 lakhs
+      nextBid = Math.ceil(nextBid / 10) * 10;
+    } else if (nextBid < 1000) {
+      // Round to nearest 20 lakhs, but ensure it's at least 100
+      nextBid = Math.max(100, Math.ceil(nextBid / 20) * 20);
+    } else {
+      // Round to nearest 50 lakhs, but ensure it's at least 1000
+      nextBid = Math.max(1000, Math.ceil(nextBid / 50) * 50);
+    }
+
+    return nextBid;
+  };
+
+  const isValidBidAmount = (amount: number): boolean => {
+    // Check if the bid amount follows IPL rules
+    if (amount < 100) {
+      // Must be multiple of 10 lakhs
+      return amount % 10 === 0;
+    } else if (amount < 1000) {
+      // Must be multiple of 20 lakhs and >= 100
+      return amount >= 100 && amount % 20 === 0;
+    } else {
+      // Must be multiple of 50 lakhs and >= 1000
+      return amount >= 1000 && amount % 50 === 0;
+    }
   };
 
   const getQuickBidAmount = () => {
@@ -285,9 +351,8 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
       return currentPlayer.basePrice;
     }
 
-    // If there is a current bid, return current bid + increment
-    const increment = getMinBidIncrement();
-    return currentBid.amount + increment;
+    // If there is a current bid, return the next valid bid amount
+    return getValidNextBid(currentBid.amount);
   };
 
   const handleQuickBid = () => {
@@ -396,6 +461,43 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
                   >
                     Resume
                   </Button>
+                )}
+                {/* Undo Controls - only show during active auction */}
+                {(currentAuction?.status === 'active' || currentAuction?.status === 'paused') && (
+                  <>
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      size="small"
+                      startIcon={<Undo />}
+                      onClick={() => socketService.undoLastSale(auctionId)}
+                      sx={{ minWidth: 'auto' }}
+                    >
+                      Undo Sale
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      size="small"
+                      startIcon={<SkipPrevious />}
+                      onClick={() => socketService.undoPreviousPlayer(auctionId)}
+                      sx={{ minWidth: 'auto' }}
+                    >
+                      Previous Player
+                    </Button>
+                    {currentPlayer && (
+                      <Button
+                        variant="outlined"
+                        color="secondary"
+                        size="small"
+                        startIcon={<Undo />}
+                        onClick={() => socketService.undoLastBid(auctionId, currentPlayer.id)}
+                        sx={{ minWidth: 'auto' }}
+                      >
+                        Undo Bid
+                      </Button>
+                    )}
+                  </>
                 )}
                 <Button
                   variant="outlined"
@@ -723,7 +825,7 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
             value={bidAmount}
             inputProps={{
               min: getQuickBidAmount(),
-              step: getMinBidIncrement() // Use proper increment based on current amount
+              step: currentBid ? getMinBidIncrement(currentBid.amount) : 10 // Use proper increment based on current amount
             }}
             onChange={(e) => {
               const value = parseFloat(e.target.value);
@@ -733,11 +835,19 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
                 setBidAmount(e.target.value);
               }
             }}
-            error={bidAmount !== '' && parseFloat(bidAmount) < getQuickBidAmount()}
-            helperText={bidAmount !== '' && parseFloat(bidAmount) < getQuickBidAmount()
-              ? `Must be at least ₹${getQuickBidAmount()} lakhs`
-              : `Minimum: ₹${getQuickBidAmount()} lakhs (next increment)`
-            }
+            error={bidAmount !== '' && (parseFloat(bidAmount) < getQuickBidAmount() || !isValidBidAmount(parseFloat(bidAmount)))}
+            helperText={(() => {
+              if (bidAmount === '') return `Minimum: ₹${getQuickBidAmount()} lakhs (next increment)`;
+              const amount = parseFloat(bidAmount);
+              if (amount < getQuickBidAmount()) {
+                return `Must be at least ₹${getQuickBidAmount()} lakhs`;
+              }
+              if (!isValidBidAmount(amount)) {
+                const increment = amount < 100 ? 10 : amount < 1000 ? 20 : 50;
+                return `Invalid amount. Must be multiple of ${increment} lakhs`;
+              }
+              return `Valid bid amount`;
+            })()}
           />
         </DialogContent>
         <DialogActions>
@@ -745,7 +855,7 @@ const AuctionRoom: React.FC<AuctionRoomProps> = ({ auctionId, userName }) => {
           <Button
             onClick={handlePlaceBid}
             variant="contained"
-            disabled={bidAmount === '' || parseFloat(bidAmount) < getQuickBidAmount()}
+            disabled={bidAmount === '' || parseFloat(bidAmount) < getQuickBidAmount() || !isValidBidAmount(parseFloat(bidAmount))}
           >
             Place Bid
           </Button>

@@ -61,6 +61,19 @@ export class SocketManager {
     this.auctionEngine.on('auctionResumed', (data) => {
       this.io.to(data.auctionId).emit('auction_resumed', data);
     });
+
+    // Undo event listeners
+    this.auctionEngine.on('playerSaleUndone', (data) => {
+      this.io.to(data.auctionId).emit('player_sale_undone', data);
+    });
+
+    this.auctionEngine.on('undoToPreviousPlayer', (data) => {
+      this.io.to(data.auctionId).emit('undo_to_previous_player', data);
+    });
+
+    this.auctionEngine.on('bidRemoved', (data) => {
+      this.io.to(data.auctionId).emit('bid_removed', data);
+    });
   }
 
   private setupSocketHandlers(): void {
@@ -213,6 +226,94 @@ export class SocketManager {
         } catch (error) {
           socket.emit('error', {
             message: 'Failed to sell player',
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      });
+
+      // ===== UNDO SOCKET EVENTS =====
+
+      socket.on('undo_last_sale', async (data: { auctionId: string }) => {
+        try {
+          console.log('🔄 Undo last sale requested for auction:', data.auctionId);
+
+          const user = this.connectedUsers.get(socket.id);
+          if (!user) {
+            console.error('❌ User not found for socket:', socket.id);
+            socket.emit('error', { message: 'User not found' });
+            return;
+          }
+
+          console.log('👤 User found:', user.name, 'for auction:', data.auctionId);
+
+          await this.auctionEngine.undoLastPlayerSale(data.auctionId, user.name);
+
+          console.log('✅ Undo last sale successful, broadcasting state update');
+
+          // Get updated auction state and broadcast to all users in auction
+          const state = await this.auctionEngine.getCurrentAuctionState(data.auctionId);
+          this.io.to(data.auctionId).emit('auction_state_updated', state);
+
+          socket.emit('undo_success', {
+            message: 'Last player sale undone successfully',
+            type: 'last_sale'
+          });
+        } catch (error) {
+          console.error('❌ Undo last sale error:', error);
+          socket.emit('error', {
+            message: 'Failed to undo last sale',
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      });
+
+      socket.on('undo_previous_player', async (data: { auctionId: string }) => {
+        try {
+          const user = this.connectedUsers.get(socket.id);
+          if (!user) {
+            socket.emit('error', { message: 'User not found' });
+            return;
+          }
+
+          await this.auctionEngine.undoToPreviousPlayer(data.auctionId, user.name);
+
+          // Get updated auction state and broadcast to all users in auction
+          const state = await this.auctionEngine.getCurrentAuctionState(data.auctionId);
+          this.io.to(data.auctionId).emit('auction_state_updated', state);
+
+          socket.emit('undo_success', {
+            message: 'Moved to previous player successfully',
+            type: 'previous_player'
+          });
+        } catch (error) {
+          socket.emit('error', {
+            message: 'Failed to move to previous player',
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      });
+
+      socket.on('undo_last_bid', async (data: { auctionId: string, playerId: string }) => {
+        try {
+          const user = this.connectedUsers.get(socket.id);
+          if (!user) {
+            socket.emit('error', { message: 'User not found' });
+            return;
+          }
+
+          await this.auctionEngine.undoLastBid(data.auctionId, data.playerId, user.name);
+
+          // Get updated auction state and broadcast to all users in auction
+          const state = await this.auctionEngine.getCurrentAuctionState(data.auctionId);
+          this.io.to(data.auctionId).emit('auction_state_updated', state);
+
+          socket.emit('undo_success', {
+            message: 'Last bid undone successfully',
+            type: 'last_bid'
+          });
+        } catch (error) {
+          socket.emit('error', {
+            message: 'Failed to undo last bid',
             error: error instanceof Error ? error.message : String(error)
           });
         }

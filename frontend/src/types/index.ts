@@ -118,4 +118,10 @@ export interface SocketEvents {
   error: (data: { message: string; error?: string }) => void;
   bid_error: (data: { message: string; error?: string }) => void;
   join_success: (data: { message: string; auctionState: AuctionState }) => void;
+
+  // Undo events
+  undo_success: (data: { message: string; type: string }) => void;
+  player_sale_undone: (data: { auctionId: string; player: Player; initiatedBy: string }) => void;
+  undo_to_previous_player: (data: { auctionId: string; player: Player; initiatedBy: string }) => void;
+  bid_removed: (data: { auctionId: string; playerId: string; removedBid: Bid; newHighestBid: Bid | null; initiatedBy: string }) => void;
 }

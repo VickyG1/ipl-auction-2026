@@ -137,18 +137,26 @@ export class AuctionEngine extends EventEmitter {
       throw new Error('Player not found');
     }
 
-    // Validate bid amount
+    // Validate bid amount follows IPL increment rules
     const currentAmount = currentHighestBid ? currentHighestBid.amount : player.basePrice;
-    const minimumIncrement = this.calculateMinimumIncrement(currentAmount);
-    const minimumBid = currentHighestBid
-      ? currentHighestBid.amount + minimumIncrement  // Subsequent bids: previous + increment
-      : player.basePrice;                           // First bid: can equal base price
 
-    if (amount < minimumBid) {
-      const errorMessage = currentHighestBid
-        ? `Minimum bid is ${minimumBid} lakhs (current bid + increment)`
-        : `Minimum bid is ${minimumBid} lakhs (base price)`;
-      throw new Error(errorMessage);
+    // For first bid, must be at least base price and valid amount
+    if (!currentHighestBid) {
+      if (amount < player.basePrice) {
+        throw new Error(`Minimum bid is ${player.basePrice} lakhs (base price)`);
+      }
+      if (!this.isValidBidAmount(amount)) {
+        throw new Error(`Invalid bid amount. Valid amounts must be multiples of ${amount < 100 ? '10' : amount < 1000 ? '20' : '50'} lakhs`);
+      }
+    } else {
+      // For subsequent bids, amount must be greater than current and valid
+      const minimumNextBid = this.getValidNextBid(currentAmount);
+      if (amount < minimumNextBid) {
+        throw new Error(`Minimum bid is ${minimumNextBid} lakhs`);
+      }
+      if (!this.isValidBidAmount(amount)) {
+        throw new Error(`Invalid bid amount. Valid amounts must be multiples of ${amount < 100 ? '10' : amount < 1000 ? '20' : '50'} lakhs`);
+      }
     }
 
     // Check if user can afford this bid
@@ -215,14 +223,52 @@ export class AuctionEngine extends EventEmitter {
   }
 
   private calculateMinimumIncrement(currentAmount: number): number {
-    // Same rules as frontend:
-    // Till 1 CR (100 lakhs) - minimum 10 lakhs increment
-    // 1 CR to 10 CR (100-1000 lakhs) - minimum 20 lakhs increment
-    // After 10 CR (1000+ lakhs) - minimum 50 lakhs increment
+    // IPL auction increment rules:
+    // 0-99 lakhs: minimum 10 lakhs increment
+    // 100-999 lakhs: minimum 20 lakhs increment
+    // 1000+ lakhs: minimum 50 lakhs increment
 
-    if (currentAmount < 100) return 10;      // Till 1 CR
-    else if (currentAmount < 1000) return 20; // 1 CR to 10 CR
-    else return 50;                          // After 10 CR
+    if (currentAmount < 100) return 10;
+    else if (currentAmount < 1000) return 20;
+    else return 50;
+  }
+
+  private getValidNextBid(currentAmount: number): number {
+    // Ensure bids follow IPL rules: valid sequences are
+    // 0-99 lakhs: 10, 20, 30, ..., 90
+    // 100-999 lakhs: 100, 120, 140, ..., 980
+    // 1000+ lakhs: 1000, 1050, 1100, 1150, ...
+
+    const increment = this.calculateMinimumIncrement(currentAmount);
+    let nextBid = currentAmount + increment;
+
+    // Align to valid bid values for the tier
+    if (nextBid < 100) {
+      // Round to nearest 10 lakhs
+      nextBid = Math.ceil(nextBid / 10) * 10;
+    } else if (nextBid < 1000) {
+      // Round to nearest 20 lakhs, but ensure it's at least 100
+      nextBid = Math.max(100, Math.ceil(nextBid / 20) * 20);
+    } else {
+      // Round to nearest 50 lakhs, but ensure it's at least 1000
+      nextBid = Math.max(1000, Math.ceil(nextBid / 50) * 50);
+    }
+
+    return nextBid;
+  }
+
+  private isValidBidAmount(amount: number): boolean {
+    // Check if the bid amount follows IPL rules
+    if (amount < 100) {
+      // Must be multiple of 10 lakhs
+      return amount % 10 === 0;
+    } else if (amount < 1000) {
+      // Must be multiple of 20 lakhs and >= 100
+      return amount >= 100 && amount % 20 === 0;
+    } else {
+      // Must be multiple of 50 lakhs and >= 1000
+      return amount >= 1000 && amount % 50 === 0;
+    }
   }
 
   private canAddPlayerToSquad(squad: Squad, player: Player): boolean {
@@ -464,6 +510,168 @@ export class AuctionEngine extends EventEmitter {
       currentBid,
       timeRemaining
     };
+  }
+
+  // ===== UNDO FUNCTIONALITY =====
+
+  async undoLastPlayerSale(auctionId: string, initiatedBy: string): Promise<boolean> {
+    try {
+      console.log(`🔄 Starting undo last player sale for auction ${auctionId} by ${initiatedBy}`);
+
+      const auction = await this.db.getAuctionById(auctionId);
+      if (!auction) {
+        console.error(`❌ Auction ${auctionId} not found`);
+        throw new Error('Auction not found');
+      }
+
+      if (auction.status !== AuctionStatus.ACTIVE) {
+        console.error(`❌ Auction ${auctionId} is not active, status: ${auction.status}`);
+        throw new Error('Auction not active');
+      }
+
+      console.log(`✅ Auction ${auctionId} is active, looking for last sold player`);
+
+      // Get the last sold player (most recent by sale timestamp)
+      const lastSoldPlayer = await this.db.getLastSoldPlayer(auctionId);
+      if (!lastSoldPlayer) {
+        console.error(`❌ No sold players found for auction ${auctionId}`);
+        throw new Error('No players have been sold yet');
+      }
+
+      console.log(`🔄 Undoing sale of ${lastSoldPlayer.name} (sold to: ${lastSoldPlayer.soldTo}) by ${initiatedBy}`);
+
+      // Remove player from squad and refund budget
+      await this.db.removePlayerFromSquad(auctionId, lastSoldPlayer.id, lastSoldPlayer.soldTo);
+      console.log(`✅ Removed player from squad and refunded budget`);
+
+      // Reset player to available status
+      await this.db.updatePlayerTeam(lastSoldPlayer.id, null, null);
+      console.log(`✅ Reset player team status`);
+
+      // Remove all bids for this player to prevent confusion
+      await this.db.deleteBidsForPlayer(auctionId, lastSoldPlayer.id);
+      console.log(`✅ Cleared all bids for player`);
+
+      // Set auction back to this player
+      await this.db.updateAuction(auctionId, {
+        currentPlayerId: lastSoldPlayer.id,
+        status: AuctionStatus.ACTIVE
+      });
+      console.log(`✅ Set auction back to player ${lastSoldPlayer.name}`);
+
+      // Restart timer for this player
+      this.startTimer(auctionId, lastSoldPlayer.id, auction.settings.bidTimer);
+      console.log(`✅ Restarted timer for player`);
+
+      this.emit('playerSaleUndone', {
+        auctionId,
+        player: lastSoldPlayer,
+        initiatedBy
+      });
+
+      console.log(`🎉 Undo last player sale completed successfully`);
+      return true;
+    } catch (error) {
+      console.error('❌ Error undoing player sale:', error);
+      throw error;
+    }
+  }
+
+  async undoToPreviousPlayer(auctionId: string, initiatedBy: string): Promise<boolean> {
+    try {
+      const auction = await this.db.getAuctionById(auctionId);
+      if (!auction || auction.status !== AuctionStatus.ACTIVE) {
+        throw new Error('Auction not active');
+      }
+
+      const playerOrder = this.auctionPlayerOrders.get(auctionId);
+      if (!playerOrder) {
+        throw new Error('Player order not found for auction');
+      }
+
+      const currentPlayerIndex = playerOrder.findIndex(p => p.id === auction.currentPlayerId);
+      if (currentPlayerIndex <= 0) {
+        throw new Error('Already at the first player');
+      }
+
+      const previousPlayer = playerOrder[currentPlayerIndex - 1];
+
+      // Clear any bids for current player
+      if (auction.currentPlayerId) {
+        await this.db.deleteBidsForPlayer(auctionId, auction.currentPlayerId);
+      }
+
+      // Set auction to previous player
+      await this.db.updateAuction(auctionId, {
+        currentPlayerId: previousPlayer.id,
+        status: AuctionStatus.ACTIVE
+      });
+
+      // Reset player status to available if they were sold
+      await this.db.updatePlayerTeam(previousPlayer.id, null, null);
+
+      // If previous player was sold, remove from squad
+      if (previousPlayer.team) {
+        const squads = await this.db.getSquadsByAuction(auctionId);
+        const squad = squads.find(s => s.id === previousPlayer.team);
+        if (squad) {
+          await this.db.removePlayerFromSquad(auctionId, previousPlayer.id, squad.userId);
+        }
+      }
+
+      // Restart timer
+      this.startTimer(auctionId, previousPlayer.id, auction.settings.bidTimer);
+
+      this.emit('undoToPreviousPlayer', {
+        auctionId,
+        player: previousPlayer,
+        initiatedBy
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error undoing to previous player:', error);
+      throw error;
+    }
+  }
+
+  async undoLastBid(auctionId: string, playerId: string, initiatedBy: string): Promise<boolean> {
+    try {
+      const auction = await this.db.getAuctionById(auctionId);
+      if (!auction || auction.status !== AuctionStatus.ACTIVE) {
+        throw new Error('Auction not active');
+      }
+
+      if (auction.currentPlayerId !== playerId) {
+        throw new Error('Can only undo bids for current player');
+      }
+
+      // Get current highest bid
+      const currentBid = await this.db.getHighestBid(auctionId, playerId);
+      if (!currentBid) {
+        throw new Error('No bids to undo for this player');
+      }
+
+      // Remove the highest bid
+      await this.db.deleteSpecificBid(auctionId, playerId, currentBid.id);
+
+      // Get the new highest bid (previous bid)
+      const newHighestBid = await this.db.getHighestBid(auctionId, playerId);
+
+      // Emit bid removed event
+      this.emit('bidRemoved', {
+        auctionId,
+        playerId,
+        removedBid: currentBid,
+        newHighestBid,
+        initiatedBy
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error undoing last bid:', error);
+      throw error;
+    }
   }
 
   cleanup(): void {

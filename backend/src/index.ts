@@ -80,6 +80,11 @@ app.post('/api/auctions/:id/resume', (req, res) => auctionController.resumeAucti
 app.post('/api/auctions/:id/sell-now', (req, res) => auctionController.sellPlayerNow(req, res));
 app.get('/api/auctions/:id/squads', (req, res) => auctionController.getSquads(req, res));
 
+// Undo endpoints
+app.post('/api/auctions/:id/undo/last-sale', (req, res) => auctionController.undoLastPlayerSale(req, res));
+app.post('/api/auctions/:id/undo/previous-player', (req, res) => auctionController.undoToPreviousPlayer(req, res));
+app.post('/api/auctions/:id/undo/last-bid/:playerId', (req, res) => auctionController.undoLastBid(req, res));
+
 // Serve static files from React build (for production)
 if (process.env.NODE_ENV === 'production') {
   const frontendBuildPath = path.join(process.cwd(), 'build');

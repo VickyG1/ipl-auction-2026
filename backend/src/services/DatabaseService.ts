@@ -161,7 +161,7 @@ export class DatabaseService {
         JSON.stringify(player.stats || {}),
         player.imageUrl || null,
         (player as any).country || 'India',
-        (player as any).isOverseas ? 1 : 0,
+        (player as any).overseas ? 1 : 0,
         (player as any).setNumber || 0,
         (player as any).auctionOrder || 0,
         (player as any).battingStyle || null,
@@ -553,11 +553,11 @@ export class DatabaseService {
           WHERE id = ?
         `);
 
-        console.log('Updating squad stats for role:', player.role, 'isOverseas:', (player as any).isOverseas);
+        console.log('Updating squad stats for role:', player.role, 'isOverseas:', player.isOverseas);
 
         updateSquadStmt.run(
           soldPrice,
-          (player as any).isOverseas ? 1 : 0,
+          player.isOverseas ? 1 : 0,
           player.role,
           player.role,
           squadId,
@@ -730,7 +730,7 @@ export class DatabaseService {
               JSON.stringify(player.stats || {}),
               player.imageUrl || null,
               player.country || 'India',
-              player.isOverseas ? 1 : 0,
+              (player as any).overseas ? 1 : 0,
               player.setNumber || 0,
               player.auctionOrder,
               player.battingStyle || null,
@@ -763,6 +763,170 @@ export class DatabaseService {
     });
   }
 
+  // ===== UNDO FUNCTIONALITY METHODS =====
+
+  async getLastSoldPlayer(auctionId: string): Promise<(Player & { soldTo: string; soldPrice: number }) | null> {
+    return new Promise((resolve, reject) => {
+      this.db.get<any>(
+        `SELECT p.*, sp.acquired_at, sp.sold_price, sp.user_id as soldTo
+         FROM players p
+         JOIN squad_players sp ON p.id = sp.player_id
+         JOIN squads s ON sp.squad_id = s.id
+         WHERE s.auction_id = ? AND p.team IS NOT NULL
+         ORDER BY sp.acquired_at DESC
+         LIMIT 1`,
+        [auctionId],
+        (err, row) => {
+          if (err) {
+            reject(err);
+          } else if (!row) {
+            resolve(null);
+          } else {
+            resolve({
+              id: row.id,
+              name: row.name,
+              team: row.team,
+              role: row.role,
+              basePrice: row.base_price,
+              category: row.category,
+              stats: JSON.parse(row.stats || '{}'),
+              imageUrl: row.image_url,
+              country: row.country,
+              isOverseas: row.is_overseas === 1,
+              setNumber: row.set_number,
+              battingStyle: row.batting_style,
+              bowlingStyle: row.bowling_style,
+              previousTeam: row.previous_team,
+              soldTo: row.soldTo,
+              soldPrice: row.sold_price,
+              scrapedAt: row.scraped_at ? new Date(row.scraped_at) : undefined
+            });
+          }
+        }
+      );
+    });
+  }
+
+  async removePlayerFromSquad(auctionId: string, playerId: string, userId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.db.serialize(() => {
+        this.db.run('BEGIN TRANSACTION');
+
+        // Get squad and player info for budget refund
+        this.db.get(
+          `SELECT s.*, sp.sold_price, p.role, p.is_overseas
+           FROM squads s
+           JOIN squad_players sp ON s.id = sp.squad_id
+           JOIN players p ON sp.player_id = p.id
+           WHERE s.auction_id = ? AND s.user_id = ? AND sp.player_id = ?`,
+          [auctionId, userId, playerId],
+          (err: any, row: any) => {
+            if (err) {
+              this.db.run('ROLLBACK');
+              reject(err);
+              return;
+            }
+
+            if (!row) {
+              this.db.run('ROLLBACK');
+              reject(new Error('Player not found in squad'));
+              return;
+            }
+
+            const soldPrice = row.sold_price;
+            const isOverseas = row.is_overseas === 1;
+
+            // Remove player from squad_players
+            this.db.run(
+              'DELETE FROM squad_players WHERE squad_id = ? AND player_id = ?',
+              [row.id, playerId],
+              (err: any) => {
+                if (err) {
+                  this.db.run('ROLLBACK');
+                  reject(err);
+                  return;
+                }
+
+                // Update squad statistics (refund budget, decrease counts)
+                const updateSquadSql = `
+                  UPDATE squads
+                  SET budget_remaining = budget_remaining + ?,
+                      players_count = players_count - 1,
+                      overseas_count = overseas_count - ?
+                  WHERE id = ?
+                `;
+
+                this.db.run(
+                  updateSquadSql,
+                  [soldPrice, isOverseas ? 1 : 0, row.id],
+                  (err: any) => {
+                    if (err) {
+                      this.db.run('ROLLBACK');
+                      reject(err);
+                    } else {
+                      this.db.run('COMMIT');
+                      console.log(`✅ Removed ${playerId} from squad (refunded ${soldPrice} lakhs)`);
+                      resolve();
+                    }
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
+    });
+  }
+
+  async deleteBidsForPlayer(auctionId: string, playerId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        'DELETE FROM bids WHERE auction_id = ? AND player_id = ?',
+        [auctionId, playerId],
+        (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            console.log(`🗑️ Deleted all bids for player ${playerId}`);
+            resolve();
+          }
+        }
+      );
+    });
+  }
+
+  async deleteSpecificBid(auctionId: string, playerId: string, bidId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        'DELETE FROM bids WHERE auction_id = ? AND player_id = ? AND id = ?',
+        [auctionId, playerId, bidId],
+        (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            console.log(`🗑️ Deleted bid ${bidId} for player ${playerId}`);
+            resolve();
+          }
+        }
+      );
+    });
+  }
+
+  async updatePlayerTeam(playerId: string, team: string | null, soldPrice: number | null): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        'UPDATE players SET team = ?, sold_price = ? WHERE id = ?',
+        [team, soldPrice, playerId],
+        (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        }
+      );
+    });
+  }
 
   async close(): Promise<void> {
     return new Promise((resolve) => {

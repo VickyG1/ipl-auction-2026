@@ -231,4 +231,98 @@ export class AuctionController {
       });
     }
   }
+
+  // ===== UNDO ENDPOINTS =====
+
+  async undoLastPlayerSale(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params; // auction ID
+      const { initiatedBy } = req.body;
+
+      if (!initiatedBy || typeof initiatedBy !== 'string') {
+        res.status(400).json({
+          success: false,
+          message: 'initiatedBy is required'
+        });
+        return;
+      }
+
+      const success = await this.auctionEngine.undoLastPlayerSale(id, initiatedBy);
+
+      res.json({
+        success: true,
+        message: 'Last player sale undone successfully'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to undo last player sale',
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  async undoToPreviousPlayer(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params; // auction ID
+      const { initiatedBy } = req.body;
+
+      if (!initiatedBy || typeof initiatedBy !== 'string') {
+        res.status(400).json({
+          success: false,
+          message: 'initiatedBy is required'
+        });
+        return;
+      }
+
+      const success = await this.auctionEngine.undoToPreviousPlayer(id, initiatedBy);
+
+      res.json({
+        success: true,
+        message: 'Moved back to previous player successfully'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to move to previous player',
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  async undoLastBid(req: Request, res: Response): Promise<void> {
+    try {
+      const { id, playerId } = req.params; // auction ID, player ID
+      const { initiatedBy } = req.body;
+
+      if (!playerId) {
+        res.status(400).json({
+          success: false,
+          message: 'Player ID is required'
+        });
+        return;
+      }
+
+      if (!initiatedBy || typeof initiatedBy !== 'string') {
+        res.status(400).json({
+          success: false,
+          message: 'initiatedBy is required'
+        });
+        return;
+      }
+
+      const success = await this.auctionEngine.undoLastBid(id, playerId, initiatedBy);
+
+      res.json({
+        success: true,
+        message: 'Last bid undone successfully'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to undo last bid',
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
 }
